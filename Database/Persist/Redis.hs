@@ -1,5 +1,5 @@
 module Database.Persist.Redis 
-    ( module Q
+    ( module Database.Persist.Redis.Config
     ) where
 
-import qualified Database.Persist.Redis.Config as Q
+import Database.Persist.Redis.Config

@@ -18,6 +18,8 @@ library
                    , text                  >= 0.8
                    , aeson                 >= 0.5
                    , attoparsec
-                   
+                   , mtl                   >= 2.1.2    && < 2.2.0
+                   , transformers          >= 0.3.0.0  && < 0.4.0.0
+
     exposed-modules: Database.Persist.Redis
     ghc-options:     -Wall
