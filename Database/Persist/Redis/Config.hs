@@ -1,13 +1,15 @@
 {-# LANGUAGE RankNTypes, TypeFamilies, GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE GADTs #-}
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 module Database.Persist.Redis.Config 
     ( RedisAuth (..)
     , RedisConf (..)
     , R.RedisCtx
     , R.Redis
     , R.Connection
-
+    , R.PortID (..)
     , module Database.Persist
     ) where
 
@@ -48,7 +50,7 @@ runRedisPool :: RedisConf -> RedisT m a -> R.Connection -> m a
 runRedisPool _ (RedisT r) = runReaderT r
 
 instance PersistConfig RedisConf where
-    type PersistConfigBackend RedisConf = RedisT
+    type PersistConfigBackend RedisConf = RedisT 
     type PersistConfigPool RedisConf = R.Connection
 
     loadConfig (Object o) = do
