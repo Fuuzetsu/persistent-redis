@@ -10,6 +10,7 @@ module Database.Persist.Redis.Config
     , R.Redis
     , R.Connection
     , R.PortID (..)
+    , RedisT
     , module Database.Persist
     ) where
 
