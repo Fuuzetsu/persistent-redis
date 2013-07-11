@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses, UndecidableInstances, DeriveFunctor #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Database.Persist.Redis.Config 
     ( RedisAuth (..)
@@ -11,6 +12,8 @@ module Database.Persist.Redis.Config
     , R.Connection
     , R.PortID (..)
     , RedisT
+    , runRedisPool
+    , withRedisConn
     , module Database.Persist
     ) where
 
@@ -22,8 +25,8 @@ import Control.Monad (mzero, MonadPlus(..))
 import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.Trans.Class (MonadTrans (..))
 import Control.Applicative (Applicative (..))
-
 import Control.Monad.Reader(ReaderT(..))
+import Control.Monad.Reader.Class 
 import qualified Data.ByteString.Char8 as B
 import Data.Attoparsec.Number
 
@@ -47,11 +50,16 @@ instance FromJSON RedisAuth where
 newtype RedisT m a = RedisT (ReaderT R.Connection m a)
     deriving (Monad, MonadIO, MonadTrans, Functor, Applicative, MonadPlus)
 
-runRedisPool :: RedisConf -> RedisT m a -> R.Connection -> m a
-runRedisPool _ (RedisT r) = runReaderT r
+withRedisConn :: (Monad m, MonadIO m) => RedisConf -> (R.Connection -> m a) -> m a
+withRedisConn conf connectionReader = do
+    conn <- liftIO $ createPoolConfig conf
+    connectionReader conn
+
+runRedisPool :: RedisT m a -> R.Connection -> m a
+runRedisPool (RedisT r) = runReaderT r
 
 instance PersistConfig RedisConf where
-    type PersistConfigBackend RedisConf = RedisT 
+    type PersistConfigBackend RedisConf = RedisT
     type PersistConfigPool RedisConf = R.Connection
 
     loadConfig (Object o) = do
@@ -85,5 +93,5 @@ instance PersistConfig RedisConf where
             R.connectMaxConnections = m
         }
 
-    runPool = runRedisPool
+    runPool _ = runRedisPool
 

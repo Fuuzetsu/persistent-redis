@@ -4,6 +4,7 @@ module Database.Persist.Redis.Internal
     , toKey
     , toKeyId
     , toEntityName
+    , deconvert
 	) where
 
 import Data.Text (unpack)
@@ -11,6 +12,10 @@ import Database.Persist.Types
 import Database.Persist.Class
 import qualified Data.ByteString as B
 import qualified Data.ByteString.UTF8 as U
+import qualified Database.Redis as R
+
+deconvert :: R.RedisCtx m f => f a -> a
+deconvert = undefined
 
 toLabel :: FieldDef a -> B.ByteString
 toLabel = U.fromString . unpack . unDBName . fieldDB
