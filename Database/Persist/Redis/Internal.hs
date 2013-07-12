@@ -63,13 +63,16 @@ toInsertFields record = zipAndConvert entity fields
 underscoreBs :: B.ByteString
 underscoreBs = U.fromString "_"
 
+toKey :: PersistEntity val => val -> Integer -> B.ByteString
+toKey val n = B.append (toObjectPrefix val) (U.fromString $ show n)
+
 -- Create a string key for given entity
-toKey :: PersistEntity val => val -> B.ByteString
-toKey val = B.append (toEntityName $ entityDef $ Just val) underscoreBs
+toObjectPrefix :: PersistEntity val => val -> B.ByteString
+toObjectPrefix val = B.append (toEntityName $ entityDef $ Just val) underscoreBs
 
 idBs :: B.ByteString
-idBs = U.fromString "_id"
+idBs = U.fromString "id"
 
 -- Construct an id key, that is incremented for access
 toKeyId :: PersistEntity val => val -> B.ByteString
-toKeyId val = B.append (toKey val) idBs
+toKeyId val = B.append (toObjectPrefix val) idBs
