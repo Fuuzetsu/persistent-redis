@@ -53,7 +53,7 @@ zipAndConvert (e:efields) (p:pfields) =
         if pv == PersistNull then zipAndConvert efields pfields
             else (toLabel e, toValue pv) : zipAndConvert efields pfields
 
--- Create a list for create/update in Redis store
+-- | Create a list for create/update in Redis store
 toInsertFields :: PersistEntity val => val -> [(B.ByteString, B.ByteString)]
 toInsertFields record = zipAndConvert entity fields
     where
@@ -63,16 +63,17 @@ toInsertFields record = zipAndConvert entity fields
 underscoreBs :: B.ByteString
 underscoreBs = U.fromString "_"
 
+-- | Make a key for given entity and id
 toKey :: PersistEntity val => val -> Integer -> B.ByteString
 toKey val n = B.append (toObjectPrefix val) (U.fromString $ show n)
 
--- Create a string key for given entity
+-- | Create a string key for given entity
 toObjectPrefix :: PersistEntity val => val -> B.ByteString
 toObjectPrefix val = B.append (toEntityName $ entityDef $ Just val) underscoreBs
 
 idBs :: B.ByteString
 idBs = U.fromString "id"
 
--- Construct an id key, that is incremented for access
+-- | Construct an id key, that is incremented for access
 toKeyId :: PersistEntity val => val -> B.ByteString
 toKeyId val = B.append (toObjectPrefix val) idBs

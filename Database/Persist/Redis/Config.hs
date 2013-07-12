@@ -33,11 +33,12 @@ import Data.Attoparsec.Number
 
 newtype RedisAuth =  RedisAuth Text deriving (Eq, Show)
 
+-- | Information required to connect to a Redis server
 data RedisConf = RedisConf {
-    rdHost    :: Text,
-    rdPort    :: R.PortID,
-    rdAuth    :: Maybe RedisAuth,
-    rdMaxConn :: Int
+    rdHost    :: Text,  -- | Host
+    rdPort    :: R.PortID, -- | Port
+    rdAuth    :: Maybe RedisAuth, -- | Auth info
+    rdMaxConn :: Int -- | Maximum number of connections
 } deriving (Show)
 
 instance FromJSON R.PortID where
@@ -48,12 +49,15 @@ instance FromJSON RedisAuth where
     parseJSON (String t) = (return . RedisAuth) t
     parseJSON _ = fail "couldn't parse auth" 
 
+-- | Monad reader transformer keeping Redis connection through out the work
 newtype RedisT m a = RedisT { runRedisT :: ReaderT R.Connection m a }
     deriving (Monad, MonadIO, MonadTrans, Functor, Applicative, MonadPlus)
 
+-- | Extracts connection from RedisT monad transformer
 thisConnection :: Monad m => RedisT m R.Connection
 thisConnection = RedisT $ ask
 
+-- | Run a connection reader function against a Redis configuration
 withRedisConn :: (Monad m, MonadIO m) => RedisConf -> (R.Connection -> m a) -> m a
 withRedisConn conf connectionReader = do
     conn <- liftIO $ createPoolConfig conf

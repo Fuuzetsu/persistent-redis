@@ -4,6 +4,7 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Database.Persist.Redis.Store 
     ( RedisBackend
+    , execRedisT
     )where
 
 import Database.Persist
@@ -22,15 +23,14 @@ data RedisBackend
 toOid :: (PersistEntity val) => Integer -> Key val
 toOid = Key . PersistText . pack . show 
 
-runDB :: (R.RedisCtx m f) => m (f a) -> RedisT m (f a)
-runDB x = undefined
-
+-- | Fetches a next key from <object>_id record
 createKey :: (R.RedisCtx m f, PersistEntity val) => val -> m (f Integer)
 createKey val = do
     let keyId = toKeyId val
     oid <- R.incr keyId
     return oid
 
+-- | Inserts a hash map into <object>_<id> record
 insertImpl :: (R.RedisCtx m f, PersistEntity val) => val -> Integer -> m (f R.Status)
 insertImpl val keyId = do
     let fields = toInsertFields val
@@ -42,18 +42,15 @@ desugar (R.TxSuccess x) =  Right x
 desugar R.TxAborted = Left "Transaction aborted!"
 desugar (R.TxError string) = Left string
 
+-- | Execute Redis transaction inside RedisT monad transformer
 execRedisT :: (Monad m, MonadIO m) => R.RedisTx (R.Queued a) -> RedisT m a
 execRedisT action = do
     conn <- thisConnection
-    result <- liftIO $ R.runRedis conn $ R.multiExec action
+    result <- liftIO $ R.runRedis conn $ R.multiExec action -- this is the question if we should support transaction here
     let r = desugar result
     case r of
         (Right x) -> return x
         (Left x)  -> fail x
-
-
-getKey :: R.RedisCtx m f => f Integer -> Integer
-getKey = undefined
 
 instance (Applicative m, Functor m, MonadIO m, MonadBaseControl IO m) => PersistStore (RedisT m) where
     type PersistMonadBackend (RedisT m) = RedisBackend
