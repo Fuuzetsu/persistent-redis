@@ -11,9 +11,10 @@ module Database.Persist.Redis.Config
     , R.Redis
     , R.Connection
     , R.PortID (..)
-    , RedisT
+    , RedisT (..)
     , runRedisPool
     , withRedisConn
+    , thisConnection
     , module Database.Persist
     ) where
 
@@ -47,8 +48,11 @@ instance FromJSON RedisAuth where
     parseJSON (String t) = (return . RedisAuth) t
     parseJSON _ = fail "couldn't parse auth" 
 
-newtype RedisT m a = RedisT (ReaderT R.Connection m a)
+newtype RedisT m a = RedisT { runRedisT :: ReaderT R.Connection m a }
     deriving (Monad, MonadIO, MonadTrans, Functor, Applicative, MonadPlus)
+
+thisConnection :: Monad m => RedisT m R.Connection
+thisConnection = RedisT $ ask
 
 withRedisConn :: (Monad m, MonadIO m) => RedisConf -> (R.Connection -> m a) -> m a
 withRedisConn conf connectionReader = do

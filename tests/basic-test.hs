@@ -29,7 +29,8 @@ redisConf :: RedisConf
 redisConf = RedisConf host (connectPort d) Nothing 10
 
 main :: IO ()
-main = withRedisConn redisConf $ runRedisPool $ do
-    s <- insert $ Person "Test" 12
-    liftIO $ print s
-    return ()
+main = do
+    withRedisConn redisConf $ runRedisPool $ do
+        s <- insert $ Person "Test" 12
+        liftIO $ print s
+        return ()

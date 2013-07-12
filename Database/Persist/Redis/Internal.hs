@@ -7,10 +7,13 @@ module Database.Persist.Redis.Internal
     , deconvert
 	) where
 
-import Data.Text (unpack)
+import Data.Data
+import Data.Text (Text, unpack)
 import Database.Persist.Types
 import Database.Persist.Class
+import Data.Aeson.Generic (encode)
 import qualified Data.ByteString as B
+import Data.ByteString.Lazy (toStrict)
 import qualified Data.ByteString.UTF8 as U
 import qualified Database.Redis as R
 
@@ -23,8 +26,23 @@ toLabel = U.fromString . unpack . unDBName . fieldDB
 toEntityName :: EntityDef a -> B.ByteString
 toEntityName = U.fromString . unpack . unDBName . entityDB
 
-toValue :: PersistField a => a -> B.ByteString
-toValue = undefined
+moveToByteString :: Data a => Either Text a -> B.ByteString
+moveToByteString (Left a)  = U.fromString $ unpack a
+moveToByteString (Right a) = toStrict $ encode a
+
+toValue :: PersistValue -> B.ByteString
+toValue (PersistText x) = U.fromString $ unpack x
+toValue (PersistByteString x) = x
+toValue (PersistInt64 x) = U.fromString $ show x
+toValue (PersistDouble x) = U.fromString $ show x
+toValue (PersistBool x) = U.fromString $ show x
+toValue (PersistDay x) = U.fromString $ show x
+toValue (PersistTimeOfDay x) = U.fromString $ show x
+toValue (PersistUTCTime x) = U.fromString $ show x
+toValue (PersistNull) = U.fromString ""
+toValue (PersistList x) = U.fromString $ show x
+toValue (PersistMap x) = U.fromString $ show x
+toValue (PersistObjectId _) = error "PersistObjectId is not supported."
 
 zipAndConvert :: PersistField t => [FieldDef a] -> [t] -> [(B.ByteString, B.ByteString)]
 zipAndConvert [] _ = []
