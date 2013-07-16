@@ -58,10 +58,13 @@ instance (Applicative m, Functor m, MonadIO m, MonadBaseControl IO m) => Persist
     insert val = do
         key <- execRedisT $ createKey val
         r <- execRedisT $ insertImpl val key
-        liftIO $ print r
         return $ toOid key
 
-    insertKey k record = undefined
+    insertKey (Key (PersistText key)) val = do
+        let fields = toInsertFields val
+        let redisKey = toKeyText val key
+        r <- execRedisT $ R.hmset redisKey fields
+        return ()
 
     repsert k record = undefined
 

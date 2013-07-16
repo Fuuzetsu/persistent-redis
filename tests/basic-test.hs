@@ -33,4 +33,5 @@ main = do
     withRedisConn redisConf $ runRedisPool $ do
         s <- insert $ Person "Test" 12
         liftIO $ print s
+        insertKey (Key (PersistText "test")) $ Person "Test2" 45
         return ()

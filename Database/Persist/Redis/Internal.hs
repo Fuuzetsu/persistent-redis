@@ -5,6 +5,7 @@ module Database.Persist.Redis.Internal
     , toKeyId
     , toEntityName
     , deconvert
+    , toKeyText
 	) where
 
 import Data.Data
@@ -42,6 +43,8 @@ toValue (PersistUTCTime x) = U.fromString $ show x
 toValue (PersistNull) = U.fromString ""
 toValue (PersistList x) = U.fromString $ show x
 toValue (PersistMap x) = U.fromString $ show x
+toValue (PersistRational _) = undefined
+toValue (PersistZonedTime _) = undefined
 toValue (PersistObjectId _) = error "PersistObjectId is not supported."
 
 zipAndConvert :: PersistField t => [FieldDef a] -> [t] -> [(B.ByteString, B.ByteString)]
@@ -66,6 +69,9 @@ underscoreBs = U.fromString "_"
 -- | Make a key for given entity and id
 toKey :: PersistEntity val => val -> Integer -> B.ByteString
 toKey val n = B.append (toObjectPrefix val) (U.fromString $ show n)
+
+toKeyText :: PersistEntity val => val -> Text -> B.ByteString
+toKeyText val k = B.append (toObjectPrefix val) (U.fromString $ unpack k)
 
 -- | Create a string key for given entity
 toObjectPrefix :: PersistEntity val => val -> B.ByteString
