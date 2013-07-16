@@ -6,6 +6,7 @@ module Database.Persist.Redis.Internal
     , toEntityName
     , deconvert
     , toKeyText
+    , toB
 	) where
 
 import Data.Data
@@ -72,6 +73,9 @@ toKey val n = B.append (toObjectPrefix val) (U.fromString $ show n)
 
 toKeyText :: PersistEntity val => val -> Text -> B.ByteString
 toKeyText val k = B.append (toObjectPrefix val) (U.fromString $ unpack k)
+
+toB :: Text -> B.ByteString
+toB = U.fromString . unpack
 
 -- | Create a string key for given entity
 toObjectPrefix :: PersistEntity val => val -> B.ByteString

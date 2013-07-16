@@ -62,8 +62,7 @@ instance (Applicative m, Functor m, MonadIO m, MonadBaseControl IO m) => Persist
 
     insertKey (Key (PersistText key)) val = do
         let fields = toInsertFields val
-        let redisKey = toKeyText val key
-        r <- execRedisT $ R.hmset redisKey fields
+        r <- execRedisT $ R.hmset (toB key) fields
         return ()
 
     repsert k record = undefined
@@ -72,4 +71,5 @@ instance (Applicative m, Functor m, MonadIO m, MonadBaseControl IO m) => Persist
 
     delete k = undefined
 
-    get k = undefined
+    get (Key (PersistText key)) = do
+        return Nothing
