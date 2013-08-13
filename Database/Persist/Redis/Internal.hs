@@ -1,7 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 module Database.Persist.Redis.Internal
 	( toInsertFields
-    , toKey
     , toKeyId
     , toEntityName
     , toKeyText
@@ -11,6 +10,7 @@ module Database.Persist.Redis.Internal
 
 import Data.Data
 import Data.Text (Text, unpack)
+import qualified Data.Text as T
 import Database.Persist.Types
 import Database.Persist.Class
 import Data.Aeson.Generic (encode)
@@ -20,6 +20,9 @@ import qualified Data.ByteString.UTF8 as U
 
 toLabel :: FieldDef a -> B.ByteString
 toLabel = U.fromString . unpack . unDBName . fieldDB
+
+toEntityString :: PersistEntity val => val -> Text
+toEntityString = unDBName . entityDB . entityDef . Just
 
 toEntityName :: EntityDef a -> B.ByteString
 toEntityName = U.fromString . unpack . unDBName . entityDB
@@ -44,7 +47,7 @@ toValue (PersistRational _) = undefined
 toValue (PersistZonedTime _) = undefined
 toValue (PersistObjectId _) = error "PersistObjectId is not supported."
 
-mkEntity :: (Monad m, PersistEntity val) => EntityDef a -> [(B.ByteString, B.ByteString)] -> m (Entity val)
+mkEntity :: (Monad m, PersistEntity val) => EntityDef val -> [(B.ByteString, B.ByteString)] -> m (Entity val)
 mkEntity = undefined
 
 zipAndConvert :: PersistField t => [FieldDef a] -> [t] -> [(B.ByteString, B.ByteString)]
@@ -67,11 +70,8 @@ underscoreBs :: B.ByteString
 underscoreBs = U.fromString "_"
 
 -- | Make a key for given entity and id
-toKey :: PersistEntity val => val -> Integer -> B.ByteString
-toKey val n = B.append (toObjectPrefix val) (U.fromString $ show n)
-
-toKeyText :: PersistEntity val => val -> Text -> B.ByteString
-toKeyText val k = B.append (toObjectPrefix val) (U.fromString $ unpack k)
+toKeyText :: PersistEntity val => val -> Integer -> Text
+toKeyText val k = T.append (T.append (toEntityString val) "_") (T.pack $ show k)
 
 toB :: Text -> B.ByteString
 toB = U.fromString . unpack

@@ -14,7 +14,7 @@ import Control.Monad.Trans.Control (MonadBaseControl)
 import Control.Monad.Reader.Class 
 import Control.Monad.Reader(ReaderT(..), runReaderT)
 import qualified Database.Redis as R
-import Data.Text (pack)
+import Data.Text (Text, pack)
 import Database.Persist.Redis.Config (RedisT(..), thisConnection)
 import Database.Persist.Redis.Internal
 
@@ -23,8 +23,8 @@ data RedisBackend
 dummyFromKey :: KeyBackend RedisBackend v -> v
 dummyFromKey _ = error "dummyFromKey"
 
-toOid :: (PersistEntity val) => Integer -> Key val
-toOid = Key . PersistText . pack . show 
+toOid :: (PersistEntity val) => Text -> Key val
+toOid = Key . PersistText
 
 -- | Fetches a next key from <object>_id record
 createKey :: (R.RedisCtx m f, PersistEntity val) => val -> m (f Integer)
@@ -32,13 +32,6 @@ createKey val = do
     let keyId = toKeyId val
     oid <- R.incr keyId
     return oid
-
--- | Inserts a hash map into <object>_<id> record
-insertImpl :: (R.RedisCtx m f, PersistEntity val) => val -> Integer -> m (f R.Status)
-insertImpl val keyId = do
-    let fields = toInsertFields val
-    let key    = toKey val keyId
-    R.hmset key fields
 
 desugar :: R.TxResult a -> Either String a
 desugar (R.TxSuccess x) =  Right x
@@ -59,12 +52,14 @@ instance (Applicative m, Functor m, MonadIO m, MonadBaseControl IO m) => Persist
     type PersistMonadBackend (RedisT m) = RedisBackend
 
     insert val = do
-        key <- execRedisT $ createKey val
-        r <- execRedisT $ insertImpl val key
-        return $ toOid key
+        keyId <- execRedisT $ createKey val
+        let key    = toOid $ toKeyText val keyId
+        r <- insertKey key val
+        return $ key
 
     insertKey (Key (PersistText key)) val = do
         let fields = toInsertFields val
+        -- Inserts a hash map into <object>_<id> record
         r <- execRedisT $ R.hmset (toB key) fields
         return ()
 
@@ -72,15 +67,18 @@ instance (Applicative m, Functor m, MonadIO m, MonadBaseControl IO m) => Persist
 
     replace k record = undefined
 
-    delete k = undefined
+    delete (Key (PersistText key)) = do
+        r <- execRedisT $ R.del [toB key]
+        case r of
+            0 -> fail "there is no such key!"
+            1 -> return ()
+            otherwise -> fail "there are a lot of such keys!"
 
     get k@(Key (PersistText key)) = do
         let t = entityDef $ Just $ dummyFromKey k
         r <- execRedisT $ R.hgetall (toB key)
-        liftIO $ print r
         if (length r) == 0
             then return Nothing
             else do
-                Entity _ val <- mkEntity (dummyFromKey k) r
-                return (Just val)
+                 return Nothing
             
