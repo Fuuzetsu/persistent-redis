@@ -63,9 +63,15 @@ instance (Applicative m, Functor m, MonadIO m, MonadBaseControl IO m) => Persist
         r <- execRedisT $ R.hmset (toB key) fields
         return ()
 
-    repsert k record = undefined
+    repsert k@(Key (PersistText key)) val = do
+        _ <- execRedisT $ R.del [toB key]
+        insertKey k val
+        return ()
 
-    replace k record = undefined
+    replace k val = do
+        delete k
+        insertKey k val
+        return ()
 
     delete (Key (PersistText key)) = do
         r <- execRedisT $ R.del [toB key]
