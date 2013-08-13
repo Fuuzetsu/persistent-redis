@@ -2,7 +2,7 @@
 {-# LANGUAGE TypeFamilies, EmptyDataDecls, GADTs #-}
 module Main where
 
-import Database.Redis
+import qualified Database.Redis as R
 import Database.Persist
 import Database.Persist.Redis
 import Database.Persist.TH
@@ -19,19 +19,21 @@ Person
     deriving Show
 |]
 
-d :: ConnectInfo
-d = defaultConnectInfo
+d :: R.ConnectInfo
+d = R.defaultConnectInfo
 
 host :: Text
-host = pack $ connectHost d
+host = pack $ R.connectHost d
 
 redisConf :: RedisConf
-redisConf = RedisConf host (connectPort d) Nothing 10
+redisConf = RedisConf host (R.connectPort d) Nothing 10
 
 main :: IO ()
 main = do
     withRedisConn redisConf $ runRedisPool $ do
         s <- insert $ Person "Test" 12
         liftIO $ print s
-        insertKey (Key (PersistText "person_test")) $ Person "Test2" 45
+        let key = Key (PersistText "person_test")
+        insertKey key $ Person "Test2" 45
+        g <- get key :: RedisT IO (Maybe Person)
         return ()

@@ -4,9 +4,9 @@ module Database.Persist.Redis.Internal
     , toKey
     , toKeyId
     , toEntityName
-    , deconvert
     , toKeyText
     , toB
+    , mkEntity
 	) where
 
 import Data.Data
@@ -17,10 +17,6 @@ import Data.Aeson.Generic (encode)
 import qualified Data.ByteString as B
 import Data.ByteString.Lazy (toStrict)
 import qualified Data.ByteString.UTF8 as U
-import qualified Database.Redis as R
-
-deconvert :: R.RedisCtx m f => f a -> a
-deconvert = undefined
 
 toLabel :: FieldDef a -> B.ByteString
 toLabel = U.fromString . unpack . unDBName . fieldDB
@@ -47,6 +43,9 @@ toValue (PersistMap x) = U.fromString $ show x
 toValue (PersistRational _) = undefined
 toValue (PersistZonedTime _) = undefined
 toValue (PersistObjectId _) = error "PersistObjectId is not supported."
+
+mkEntity :: (Monad m, PersistEntity val) => EntityDef a -> [(B.ByteString, B.ByteString)] -> m (Entity val)
+mkEntity = undefined
 
 zipAndConvert :: PersistField t => [FieldDef a] -> [t] -> [(B.ByteString, B.ByteString)]
 zipAndConvert [] _ = []

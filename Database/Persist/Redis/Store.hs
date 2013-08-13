@@ -20,6 +20,9 @@ import Database.Persist.Redis.Internal
 
 data RedisBackend
 
+dummyFromKey :: KeyBackend RedisBackend v -> v
+dummyFromKey _ = error "dummyFromKey"
+
 toOid :: (PersistEntity val) => Integer -> Key val
 toOid = Key . PersistText . pack . show 
 
@@ -71,5 +74,13 @@ instance (Applicative m, Functor m, MonadIO m, MonadBaseControl IO m) => Persist
 
     delete k = undefined
 
-    get (Key (PersistText key)) = do
-        return Nothing
+    get k@(Key (PersistText key)) = do
+        let t = entityDef $ Just $ dummyFromKey k
+        r <- execRedisT $ R.hgetall (toB key)
+        liftIO $ print r
+        if (length r) == 0
+            then return Nothing
+            else do
+                Entity _ val <- mkEntity (dummyFromKey k) r
+                return (Just val)
+            
