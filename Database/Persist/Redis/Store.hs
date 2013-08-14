@@ -78,7 +78,7 @@ instance (Applicative m, Functor m, MonadIO m, MonadBaseControl IO m) => Persist
         case r of
             0 -> fail "there is no such key!"
             1 -> return ()
-            otherwise -> fail "there are a lot of such keys!"
+            _ -> fail "there are a lot of such keys!"
 
     get k@(Key (PersistText key)) = do
         let t = entityDef $ Just $ dummyFromKey k
@@ -86,5 +86,6 @@ instance (Applicative m, Functor m, MonadIO m, MonadBaseControl IO m) => Persist
         if (length r) == 0
             then return Nothing
             else do
-                 return Nothing
+                Entity _ val <- mkEntity k t r
+                return $ Just val
             

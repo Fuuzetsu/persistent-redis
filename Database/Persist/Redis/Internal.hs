@@ -8,14 +8,11 @@ module Database.Persist.Redis.Internal
     , mkEntity
 	) where
 
-import Data.Data
 import Data.Text (Text, unpack)
 import qualified Data.Text as T
 import Database.Persist.Types
 import Database.Persist.Class
-import Data.Aeson.Generic (encode)
 import qualified Data.ByteString as B
-import Data.ByteString.Lazy (toStrict)
 import qualified Data.ByteString.UTF8 as U
 
 toLabel :: FieldDef a -> B.ByteString
@@ -26,10 +23,6 @@ toEntityString = unDBName . entityDB . entityDef . Just
 
 toEntityName :: EntityDef a -> B.ByteString
 toEntityName = U.fromString . unpack . unDBName . entityDB
-
-moveToByteString :: Data a => Either Text a -> B.ByteString
-moveToByteString (Left a)  = U.fromString $ unpack a
-moveToByteString (Right a) = toStrict $ encode a
 
 toValue :: PersistValue -> B.ByteString
 toValue (PersistText x) = U.fromString $ unpack x
@@ -47,8 +40,17 @@ toValue (PersistRational _) = undefined
 toValue (PersistZonedTime _) = undefined
 toValue (PersistObjectId _) = error "PersistObjectId is not supported."
 
-mkEntity :: (Monad m, PersistEntity val) => EntityDef val -> [(B.ByteString, B.ByteString)] -> m (Entity val)
-mkEntity = undefined
+bToValue :: B.ByteString -> PersistValue
+bToValue b = PersistText (T.pack $ U.toString b)
+
+mkEntity :: (Monad m, PersistEntity val) => Key val -> EntityDef a -> [(B.ByteString, B.ByteString)] -> m (Entity val)
+mkEntity key _ fields = do
+    let values = map (bToValue . snd) fields
+    let v = fromPersistValues values
+    case v of
+        Right body -> return $ Entity key body
+        Left a -> fail (unpack a)
+
 
 zipAndConvert :: PersistField t => [FieldDef a] -> [t] -> [(B.ByteString, B.ByteString)]
 zipAndConvert [] _ = []

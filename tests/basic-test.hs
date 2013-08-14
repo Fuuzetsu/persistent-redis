@@ -36,6 +36,7 @@ main = do
         let key = Key (PersistText "person_test")
         insertKey key $ Person "Test2" 45
         repsert s (Person "Test3" 55)
-        -- g <- get key :: RedisT IO (Maybe Person)
+        g <- get key :: RedisT IO (Maybe Person)
+        liftIO $ print g
         delete s
         return ()
