@@ -43,9 +43,21 @@ toValue (PersistObjectId _) = error "PersistObjectId is not supported."
 bToValue :: B.ByteString -> PersistValue
 bToValue b = PersistText (T.pack $ U.toString b)
 
+castOne :: (sqlType, B.ByteString) -> PersistValue
+castOne (_, x) = PersistText (T.pack $ U.toString x) 
+castOne _ = error "Unknown type"
+
+redisToPerisistValues :: EntityDef a -> [(B.ByteString, B.ByteString)] -> [PersistValue]
+redisToPerisistValues entDef fields = recast fieldsAndValues
+    where
+        castColumns = map fieldSqlType (entityFields entDef)
+        fieldsAndValues = zip castColumns (map snd fields)
+        recast :: [(sqlType, B.ByteString)] -> [PersistValue]
+        recast = map castOne
+
 mkEntity :: (Monad m, PersistEntity val) => Key val -> EntityDef a -> [(B.ByteString, B.ByteString)] -> m (Entity val)
-mkEntity key _ fields = do
-    let values = map (bToValue . snd) fields
+mkEntity key entDef fields = do
+    let values = redisToPerisistValues entDef fields
     let v = fromPersistValues values
     case v of
         Right body -> return $ Entity key body
