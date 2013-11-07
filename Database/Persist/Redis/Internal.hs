@@ -44,6 +44,8 @@ castOne :: SqlType -> String -> PersistValue
 castOne SqlString x = PersistText (T.pack x) 
 castOne SqlInt32  x = PersistInt64 (read x)
 castOne SqlInt64  x = PersistInt64 (read x)
+castOne SqlBool   x = PersistBool (read x)
+castOne SqlReal   x = PersistDouble (read x)
 castOne _  _ = error "Unknown type"
 
 redisToPerisistValues :: EntityDef SqlType -> [(B.ByteString, B.ByteString)] -> [PersistValue]
