@@ -40,22 +40,21 @@ toValue (PersistRational _) = undefined
 toValue (PersistZonedTime _) = undefined
 toValue (PersistObjectId _) = error "PersistObjectId is not supported."
 
-bToValue :: B.ByteString -> PersistValue
-bToValue b = PersistText (T.pack $ U.toString b)
+castOne :: SqlType -> String -> PersistValue
+castOne SqlString x = PersistText (T.pack x) 
+castOne SqlInt32  x = PersistInt64 (read x)
+castOne SqlInt64  x = PersistInt64 (read x)
+castOne _  _ = error "Unknown type"
 
-castOne :: (sqlType, B.ByteString) -> PersistValue
-castOne (_, x) = PersistText (T.pack $ U.toString x) 
-castOne _ = error "Unknown type"
-
-redisToPerisistValues :: EntityDef a -> [(B.ByteString, B.ByteString)] -> [PersistValue]
+redisToPerisistValues :: EntityDef SqlType -> [(B.ByteString, B.ByteString)] -> [PersistValue]
 redisToPerisistValues entDef fields = recast fieldsAndValues
     where
         castColumns = map fieldSqlType (entityFields entDef)
-        fieldsAndValues = zip castColumns (map snd fields)
-        recast :: [(sqlType, B.ByteString)] -> [PersistValue]
-        recast = map castOne
+        fieldsAndValues = zip castColumns (map (U.toString . snd) fields)
+        recast :: [(SqlType, String)] -> [PersistValue]
+        recast = map (uncurry castOne)
 
-mkEntity :: (Monad m, PersistEntity val) => Key val -> EntityDef a -> [(B.ByteString, B.ByteString)] -> m (Entity val)
+mkEntity :: (Monad m, PersistEntity val) => Key val -> EntityDef SqlType -> [(B.ByteString, B.ByteString)] -> m (Entity val)
 mkEntity key entDef fields = do
     let values = redisToPerisistValues entDef fields
     let v = fromPersistValues values

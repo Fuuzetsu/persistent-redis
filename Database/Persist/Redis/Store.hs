@@ -8,13 +8,11 @@ module Database.Persist.Redis.Store
     )where
 
 import Database.Persist
-import Control.Applicative (Applicative, (<$>))
+import Control.Applicative (Applicative)
 import Control.Monad.IO.Class (MonadIO (..))
 import Control.Monad.Trans.Control (MonadBaseControl)
-import Control.Monad.Reader.Class 
-import Control.Monad.Reader(ReaderT(..), runReaderT)
 import qualified Database.Redis as R
-import Data.Text (Text, pack)
+import Data.Text (Text)
 import Database.Persist.Redis.Config (RedisT(..), thisConnection)
 import Database.Persist.Redis.Internal
 
@@ -30,8 +28,7 @@ toOid = Key . PersistText
 createKey :: (R.RedisCtx m f, PersistEntity val) => val -> m (f Integer)
 createKey val = do
     let keyId = toKeyId val
-    oid <- R.incr keyId
-    return oid
+    R.incr keyId
 
 desugar :: R.TxResult a -> Either String a
 desugar (R.TxSuccess x) =  Right x
@@ -54,19 +51,21 @@ instance (Applicative m, Functor m, MonadIO m, MonadBaseControl IO m) => Persist
     insert val = do
         keyId <- execRedisT $ createKey val
         let key    = toOid $ toKeyText val keyId
-        r <- insertKey key val
-        return $ key
+        _ <- insertKey key val
+        return key
 
     insertKey (Key (PersistText key)) val = do
         let fields = toInsertFields val
         -- Inserts a hash map into <object>_<id> record
-        r <- execRedisT $ R.hmset (toB key) fields
+        _ <- execRedisT $ R.hmset (toB key) fields
         return ()
+    insertKey _ _ = fail "Wrong key type in insertKey"
 
     repsert k@(Key (PersistText key)) val = do
         _ <- execRedisT $ R.del [toB key]
         insertKey k val
         return ()
+    repsert _ _ = fail "Wrong key type in repsert"
 
     replace k val = do
         delete k
@@ -79,13 +78,14 @@ instance (Applicative m, Functor m, MonadIO m, MonadBaseControl IO m) => Persist
             0 -> fail "there is no such key!"
             1 -> return ()
             _ -> fail "there are a lot of such keys!"
+    delete _ = fail "Wrong key type in delete"
 
     get k@(Key (PersistText key)) = do
         let t = entityDef $ Just $ dummyFromKey k
         r <- execRedisT $ R.hgetall (toB key)
-        if (length r) == 0
+        if null r
             then return Nothing
             else do
                 Entity _ val <- mkEntity k t r
                 return $ Just val
-            
+    get  _ = fail "Wrong key type in get"

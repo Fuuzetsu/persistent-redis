@@ -6,12 +6,11 @@ import qualified Database.Redis as R
 import Database.Persist
 import Database.Persist.Redis
 import Database.Persist.TH
-import Database.Persist.Quasi
 import Language.Haskell.TH.Syntax
 import Control.Monad.IO.Class (liftIO)
 import Data.Text (Text, pack)
 
-let redisSettings = (mkPersistSettings (ConT ''RedisBackend))
+let redisSettings = mkPersistSettings (ConT ''RedisBackend)
  in share [mkPersist redisSettings] [persistLowerCase| 
 Person
     name String
@@ -29,7 +28,7 @@ redisConf :: RedisConf
 redisConf = RedisConf host (R.connectPort d) Nothing 10
 
 main :: IO ()
-main = do
+main = 
     withRedisConn redisConf $ runRedisPool $ do
         s <- insert $ Person "Test" 12
         liftIO $ print s
