@@ -8,14 +8,11 @@ module Database.Persist.Redis.Internal
     , mkEntity
 	) where
 
-import Data.Data
 import Data.Text (Text, unpack)
 import qualified Data.Text as T
 import Database.Persist.Types
 import Database.Persist.Class
-import Data.Aeson.Generic (encode)
 import qualified Data.ByteString as B
-import Data.ByteString.Lazy (toStrict)
 import qualified Data.ByteString.UTF8 as U
 
 toLabel :: FieldDef a -> B.ByteString
@@ -26,10 +23,6 @@ toEntityString = unDBName . entityDB . entityDef . Just
 
 toEntityName :: EntityDef a -> B.ByteString
 toEntityName = U.fromString . unpack . unDBName . entityDB
-
-moveToByteString :: Data a => Either Text a -> B.ByteString
-moveToByteString (Left a)  = U.fromString $ unpack a
-moveToByteString (Right a) = toStrict $ encode a
 
 toValue :: PersistValue -> B.ByteString
 toValue (PersistText x) = U.fromString $ unpack x
@@ -47,8 +40,30 @@ toValue (PersistRational _) = undefined
 toValue (PersistZonedTime _) = undefined
 toValue (PersistObjectId _) = error "PersistObjectId is not supported."
 
-mkEntity :: (Monad m, PersistEntity val) => EntityDef val -> [(B.ByteString, B.ByteString)] -> m (Entity val)
-mkEntity = undefined
+castOne :: SqlType -> String -> PersistValue
+castOne SqlString x = PersistText (T.pack x) 
+castOne SqlInt32  x = PersistInt64 (read x)
+castOne SqlInt64  x = PersistInt64 (read x)
+castOne SqlBool   x = PersistBool (read x)
+castOne SqlReal   x = PersistDouble (read x)
+castOne _  _ = error "Unknown type"
+
+redisToPerisistValues :: EntityDef SqlType -> [(B.ByteString, B.ByteString)] -> [PersistValue]
+redisToPerisistValues entDef fields = recast fieldsAndValues
+    where
+        castColumns = map fieldSqlType (entityFields entDef)
+        fieldsAndValues = zip castColumns (map (U.toString . snd) fields)
+        recast :: [(SqlType, String)] -> [PersistValue]
+        recast = map (uncurry castOne)
+
+mkEntity :: (Monad m, PersistEntity val) => Key val -> EntityDef SqlType -> [(B.ByteString, B.ByteString)] -> m (Entity val)
+mkEntity key entDef fields = do
+    let values = redisToPerisistValues entDef fields
+    let v = fromPersistValues values
+    case v of
+        Right body -> return $ Entity key body
+        Left a -> fail (unpack a)
+
 
 zipAndConvert :: PersistField t => [FieldDef a] -> [t] -> [(B.ByteString, B.ByteString)]
 zipAndConvert [] _ = []
