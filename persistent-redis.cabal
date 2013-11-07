@@ -1,14 +1,24 @@
 name:            persistent-redis
-version:         0.0.2
+version:         0.0.3
 license:         BSD3
 license-file:    LICENSE
 author:          Pavel Ryzhov <paul@paulrz.cz>
-synopsis:        Backend for the persistent library using Redis.
+synopsis:        Backend for Yesod persistent library using Redis.
 description:     Based on the Redis package.
 category:        Database, Yesod
 stability:       Experimental
 cabal-version:   >= 1.8
+maintainer:      Pavel Ryzhov <paul@paulrz.cz>
 build-type:      Simple
+
+source-repository head
+        type:           git
+        location:       https://github.com/paulrzcz/persistent-redis.git
+
+source-repository this
+        type:           git
+        location:       https://github.com/paulrzcz/persistent-redis.git
+        tag:            0.0.3
 
 library
     build-depends:   base                  >= 4        && < 5
@@ -29,8 +39,7 @@ library
                      Database.Persist.Redis.Internal
                      Database.Persist.Redis.Store
 
-
-    ghc-options:     -Wall -ddump-types
+    ghc-options:     -Wall
 
 test-suite  basic
     type: exitcode-stdio-1.0
