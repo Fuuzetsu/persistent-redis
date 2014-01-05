@@ -35,10 +35,10 @@ newtype RedisAuth =  RedisAuth Text deriving (Eq, Show)
 
 -- | Information required to connect to a Redis server
 data RedisConf = RedisConf {
-    rdHost    :: Text,  -- | Host
-    rdPort    :: R.PortID, -- | Port
-    rdAuth    :: Maybe RedisAuth, -- | Auth info
-    rdMaxConn :: Int -- | Maximum number of connections
+    rdHost    :: Text,  -- ^ Host
+    rdPort    :: R.PortID, -- ^ Port
+    rdAuth    :: Maybe RedisAuth, -- ^ Auth info
+    rdMaxConn :: Int -- ^ Maximum number of connections
 } deriving (Show)
 
 instance FromJSON R.PortID where
